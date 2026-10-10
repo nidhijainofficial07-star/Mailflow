@@ -14,6 +14,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as CaughtUpRouteImport } from './routes/caught-up'
 import { Route as CompletedRouteImport } from './routes/completed'
 import { Route as ConnectRouteImport } from './routes/connect'
+import { Route as EmailRouteImport } from './routes/email'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -46,6 +47,11 @@ const CompletedRoute = CompletedRouteImport.update({
 const ConnectRoute = ConnectRouteImport.update({
   id: '/connect',
   path: '/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailRoute = EmailRouteImport.update({
+  id: '/email',
+  path: '/email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InboxRoute = InboxRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/caught-up': typeof CaughtUpRoute
   '/completed': typeof CompletedRoute
   '/connect': typeof ConnectRoute
+  '/email': typeof EmailRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/caught-up': typeof CaughtUpRoute
   '/completed': typeof CompletedRoute
   '/connect': typeof ConnectRoute
+  '/email': typeof EmailRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/caught-up': typeof CaughtUpRoute
   '/completed': typeof CompletedRoute
   '/connect': typeof ConnectRoute
+  '/email': typeof EmailRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/caught-up'
     | '/completed'
     | '/connect'
+    | '/email'
     | '/inbox'
     | '/login'
     | '/notifications'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/caught-up'
     | '/completed'
     | '/connect'
+    | '/email'
     | '/inbox'
     | '/login'
     | '/notifications'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/caught-up'
     | '/completed'
     | '/connect'
+    | '/email'
     | '/inbox'
     | '/login'
     | '/notifications'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   CaughtUpRoute: typeof CaughtUpRoute
   CompletedRoute: typeof CompletedRoute
   ConnectRoute: typeof ConnectRoute
+  EmailRoute: typeof EmailRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/connect'
       fullPath: '/connect'
       preLoaderRoute: typeof ConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email': {
+      id: '/email'
+      path: '/email'
+      fullPath: '/email'
+      preLoaderRoute: typeof EmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inbox': {
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaughtUpRoute: CaughtUpRoute,
   CompletedRoute: CompletedRoute,
   ConnectRoute: ConnectRoute,
+  EmailRoute: EmailRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,

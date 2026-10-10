@@ -1,4 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
@@ -272,6 +276,7 @@ function getPreview(
 
 function InboxPage() {
   const tasks = useTasks();
+  const navigate = useNavigate();
 
   const [emails, setEmails] =
     useState<Email[]>([]);
@@ -1195,18 +1200,54 @@ function InboxPage() {
                 findTaskId(email);
 
               return (
-                <div
-                  key={email.id}
-                  className="flex gap-4 px-5 py-4 transition-colors hover:bg-surface/60"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    aria-label={
-                      email.subject ??
-                      "Email"
-                    }
-                  />
+
+<div
+  key={email.id}
+  role="link"
+  tabIndex={0}
+  onClick={() => {
+    if (taskId) {
+      void navigate({
+        to: "/task",
+        search: { id: taskId },
+      });
+    } else {
+      void navigate({
+        to: "/email",
+        search: { id: email.id },
+      });
+    }
+  }}
+  onKeyDown={(event) => {
+    if (
+      event.target !== event.currentTarget ||
+      (event.key !== "Enter" && event.key !== " ")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (taskId) {
+      void navigate({
+        to: "/task",
+        search: { id: taskId },
+      });
+    } else {
+      void navigate({
+        to: "/email",
+        search: { id: email.id },
+      });
+    }
+  }}
+  className="flex cursor-pointer gap-4 px-5 py-4 transition-colors hover:bg-surface/60"
+>
+                    <input
+  type="checkbox"
+  className="mt-1"
+  aria-label={email.subject ?? "Email"}
+  onClick={(event) => event.stopPropagation()}
+/>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between gap-2">

@@ -21,6 +21,7 @@ import {
   Tag,
   AlarmClock,
   BellPlus,
+  Search,
 } from "lucide-react";
 import { AppShell, Chip } from "@/components/AppShell";
 import { useTasks, setStatus } from "@/lib/tasks";
@@ -29,12 +30,12 @@ import { supabase } from "@/lib/supabase";
 export const Route = createFileRoute("/task")({
   validateSearch: (
     search: Record<string, unknown>,
-  ) => ({
-    id:
-      typeof search.id === "string"
-        ? search.id
-        : "",
-  }),
+) => ({
+  id:
+    typeof search["id"] === "string"
+      ? search["id"]
+      : "",
+}),
 
   head: () => ({
     meta: [
@@ -82,6 +83,22 @@ function TaskPage() {
     useState(false);
 
   const [reminderLoading, setReminderLoading] =
+    useState(false);
+
+  const [webResults, setWebResults] =
+    useState<
+      {
+        title: string;
+        link: string;
+        snippet: string;
+        source: string;
+      }[]
+    >([]);
+
+  const [webSearchLoading, setWebSearchLoading] =
+    useState(false);
+
+  const [webSearchDone, setWebSearchDone] =
     useState(false);
 
   const task = all.find(
@@ -141,6 +158,7 @@ function TaskPage() {
       </AppShell>
     );
   }
+  const selectedTask = task;
 
   const activeTasks = all.filter(
     (item) =>
@@ -167,32 +185,32 @@ function TaskPage() {
     task.status === "completed";
 
   async function toggleComplete() {
-    setStatus(
-      task.id,
-      done
-        ? "active"
-        : "completed",
-    );
+  setStatus(
+    selectedTask.id,
+    done
+      ? "active"
+      : "completed",
+  );
 
-    toast.success(
-      done
-        ? "Task restored"
-        : "Marked complete",
-    );
-  }
+  toast.success(
+    done
+      ? "Task restored"
+      : "Marked complete",
+  );
+}
 
   async function dismissTask() {
-    setStatus(
-      task.id,
-      "dismissed",
-    );
+  setStatus(
+    selectedTask.id,
+    "dismissed",
+  );
 
-    toast("Task dismissed");
+  toast("Task dismissed");
 
-    await navigate({
-      to: "/today",
-    });
-  }
+  await navigate({
+    to: "/today",
+  });
+}
 
   async function addReminder() {
     if (
@@ -202,7 +220,7 @@ function TaskPage() {
       return;
     }
 
-    if (!task.deadlineRaw) {
+    if (!selectedTask.deadlineRaw) {
       toast.error(
         "This task does not have a deadline for a reminder.",
       );
@@ -226,7 +244,7 @@ function TaskPage() {
 
       const deadline =
         new Date(
-          task.deadlineRaw,
+          selectedTask.deadlineRaw,
         );
 
       if (
@@ -280,7 +298,7 @@ function TaskPage() {
           .from("reminders")
           .insert({
             user_id: user.id,
-            task_id: task.id,
+            task_id: selectedTask.id,
             remind_at:
               remindAt.toISOString(),
             completed: false,
@@ -315,6 +333,83 @@ function TaskPage() {
       );
     } finally {
       setReminderLoading(false);
+    }
+  }
+
+  async function searchRelatedInformation() {
+    if (webSearchLoading) {
+      return;
+    }
+
+    try {
+      setWebSearchLoading(true);
+
+      const searchQuery = [
+        selectedTask.title,
+        selectedTask.org,
+        selectedTask.cat,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const { data, error } =
+        await supabase.functions.invoke(
+          "serp-search",
+          {
+            body: {
+              query: searchQuery,
+            },
+          },
+        );
+
+      if (error) {
+        console.error(
+          "SerpApi search error:",
+          error,
+        );
+
+        toast.error(
+          "Unable to search for related information.",
+        );
+
+        return;
+      }
+
+      if (data?.error) {
+        console.error(
+          "SerpApi response error:",
+          data.error,
+        );
+
+        toast.error(
+          "Web search failed. Please try again.",
+        );
+
+        return;
+      }
+
+      setWebResults(
+        data?.results || [],
+      );
+
+      setWebSearchDone(true);
+
+      if (
+        !data?.results?.length
+      ) {
+        toast("No related results found.");
+      }
+    } catch (error) {
+      console.error(
+        "Web search error:",
+        error,
+      );
+
+      toast.error(
+        "Unable to search for related information.",
+      );
+    } finally {
+      setWebSearchLoading(false);
     }
   }
 
@@ -496,6 +591,85 @@ function TaskPage() {
                 </p>
               </div>
             )}
+          </section>
+
+                    {/* RELATED WEB INFORMATION */}
+          <section className="rounded-2xl border bg-card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 font-semibold">
+                  <Search className="h-4 w-4" />
+                  Related web information
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Find useful information related to this task.
+                </p>
+              </div>
+
+              <Chip>
+                Powered by SerpApi
+              </Chip>
+            </div>
+
+            <button
+              onClick={searchRelatedInformation}
+              disabled={webSearchLoading}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Search className="h-4 w-4" />
+
+              {webSearchLoading
+                ? "Searching..."
+                : webSearchDone
+                  ? "Search again"
+                  : "Search related information"}
+            </button>
+
+            {webResults.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {webResults.map(
+                  (result, index) => (
+                    <a
+                      key={`${result.link}-${index}`}
+                      href={result.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-xl border p-3 transition-colors hover:bg-accent"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm font-semibold">
+                            {result.title}
+                          </p>
+
+                          {result.source && (
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                              {result.source}
+                            </p>
+                          )}
+
+                          {result.snippet && (
+                            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                              {result.snippet}
+                            </p>
+                          )}
+                        </div>
+
+                        <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      </div>
+                    </a>
+                  ),
+                )}
+              </div>
+            )}
+
+            {webSearchDone &&
+              webResults.length === 0 && (
+                <p className="mt-4 rounded-xl bg-surface p-3 text-xs text-muted-foreground">
+                  No related web results were found.
+                </p>
+              )}
           </section>
 
           {/* EXTRACTED ACTION */}
